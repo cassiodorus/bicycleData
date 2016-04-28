@@ -116,6 +116,9 @@ rawDataFixed_cat <- dplyr::select( rawDataFixed, one_of(catcol_rawData) )
  # ##################################################
  # save it
  save(rawDataFixedMiss,file="rawDataFixedMiss.RData")
+ #
+ # write as tab delim file
+ write.table(rawDataFixedMiss, "output/rawDataFixedMiss.csv", sep="\t")
  # #####################################################
  #              FINIS
  # #####################################################
