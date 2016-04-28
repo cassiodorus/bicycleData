@@ -1,0 +1,38 @@
+# ############################################
+# David Hopp
+# 4/23/2016
+#
+# CodeForDurham
+# bicycle accident data
+#
+# cleanup summary
+#
+##############################################
+#
+# the data frame to use is rawDataFixedMiss
+# that df is rawData updated
+#
+# ############################################
+Remove rows 
+	2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789
+
+Trim text data in 
+	"Bike_Injur","Crash_Loc","Crash_Type","Crsh_Sevri","Drvr_Injur","Drvr_VehTy"
+
+Replace with NA:
+	rawDataFixedMiss[rawDataFixedMiss=="" | rawDataFixedMiss=="." | rawDataFixedMiss=="Missing" | rawDataFixedMiss=="/Missing"] <- NA
+
+	for Longitude and Location - replace zeros with NA
+
+		rawDataFixedMiss$Location[rawDataFixedMiss$Location=="(0, 0)"] <- NA
+ 
+		rawDataFixedMiss$Longitude[rawDataFixedMiss$Longitude==0] <- NA
+
+	Two records had "Location" entered where it did not make sense
+	
+		rawDataFixedMiss[rawDataFixedMiss=="Location"] <- NA
+ 
+Correct an error:
+	rawDataFixedMiss[rawDataFixedMiss=="No0"] <- "No"
+
+###############################################
