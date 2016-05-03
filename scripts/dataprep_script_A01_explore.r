@@ -1,4 +1,13 @@
 # ###################################################
+# Durham NC Bicycle Safety data CodeForAmerica project
+# David Hopp
+# 4/29/16
+#
+# dataprep_script_A01.explore.r
+#
+# explore the rawData data frame
+#
+# ###################################################
 # rawData
 names(rawData)
  [1] "FID"        "OBJECTID"   "AmbulanceR" "BikeAge_Gr" "Bike_Age"   "Bike_Alc_D" "Bike_Dir"   "Bike_Injur" "Bike_Pos"  

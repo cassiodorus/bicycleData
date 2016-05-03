@@ -3,10 +3,10 @@
 # 4/21/2016
 #
 # CodeForDurham
-# bicycle accident data
+# bicycle safety data
 #
 ##############################################
-# script_A02_explore.r
+# dataprep_script_A02_explore.r
 # data exploration
 # look at categorical data and see if any "odd" entries
 # ############################################
