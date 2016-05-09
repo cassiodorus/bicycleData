@@ -1,0 +1,83 @@
+
+comment: C:\Users\David Hopp\AppData\Local\GitHub\PortableGit_25d850739bc178b2eb13c3e2a9faafea2f9143c0\cmd
+
+# Comparing Versions of North_Carolina_Bicycle_Crash_Data.csv.gz  
+This script compares a new verion of the bicycle safety data file
+North_Carolina_Bicycle_Crash_Data.csv.gz with what is already in the
+R project as the data frame rawData.  
+
+There is one chunk here:
+
+```{r }
+#
+# compare current version of remote file with current contents of rawData
+# an alternative is to use the compare package
+#
+checkOldNew <- function() {
+# check to be sure rawData is there
+	if ( !exists("rawData") ) {
+		print("rawData does not exist.")
+		return()
+	}
+	print( "rawData exists" )
+	#
+	# read current version of remote file
+	#
+	print( "read remote file" )
+	strDownload <- "CrashData.csv.gz"  
+	bikeSafetyURL <- "https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true"
+	download.file( bikeSafetyURL, strDownload, mode="wb" )
+	rawDataToCompare <- read.csv( gzfile(strDownload), stringsAsFactors = FALSE )
+	unlink(strDownload)
+	rawDataToCompare %>% write.csv( "RawDataFromRemote.csv", row.names = FALSE )
+	#
+	# use simple test
+	#
+	if ( !exists("rawDataToCompare") ) {
+		print("rawDataToCompare does not exist.")
+		return()
+	}
+	print( "rawDataToCompare exists" )
+	#
+	if (identical(rawData, rawDataToCompare) ) {
+		print("representations as data frames are identical")
+	} else {
+		#
+		# not identical
+		# look at some possible problems
+		#
+		print( "rawData and rawDataToCompare are not identical." )
+		#
+		if ( class(rawData)!=class(rawDataToCompare) ) {
+			print( paste("class of rawDataToCompare should be data.frame but is", class(rawDataToCompare)) )
+			return()
+		}
+		print( "class of both is data.frame" )
+		#
+		if ( nrow(rawData)!=nrow(rawDataToCompare) ) {
+			print( paste("nrow of rawData is", nrow(rawData), "but nrow of rawDataToCompare is", nrow(rawDataToCompare)) )
+			return()
+		}
+		print( "nrow of both are the same" )
+		#
+		if ( !identical(names(rawData),names(rawDataToCompare)) ) {
+			print( "names of rawData and rawDataToCompare are different:" )
+			if ( length(names(rawData)==length(rawDataToCompare)) ) {
+				print( "length of names are the same" )
+			} else {
+				print("length of names of rawData is", length(names(rawData)), 
+					"but length of names of rawDataToCompare is", length(names(rawDataToCompare)) )
+			}
+			names(rawData)
+			names(rawDataToCompare)
+			return()
+		}
+		print( "names of both are the same" )
+		#
+		print( "no more ideas right now - look closely to find the difference")
+	}
+}
+# ##########################
+checkOldNew()
+# ##########################
+```
