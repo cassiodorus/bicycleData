@@ -1,10 +1,15 @@
-Durham NC Bicycle Safety data CodeForAmerica project
+---
+title: "Durham NC Bicycle Safety data CodeForAmerica project"
+author: "David Hopp "
+date: "2016-05-09 "
+output: html_document
+---  
 
- R markdown script to perform all operations
- leading to the final output csv file rawDataFixedMiss.csv
+R markdown script to perform all operations  
+leading to the final output csv file rawDataFixedMiss.csv  
  
 ## Step 0. Make sure required packages loaded
-```{r step00, message = FALSE}
+```{r step00, results="hide"}
 require(plyr)
 require(dplyr)
 require(stringr)
@@ -29,15 +34,14 @@ if (download) {
   unlink(strDownload)
   rawData %>% write.csv( "RawDataFromRemote.csv", row.names = FALSE )
 } else {
-	if ( nchar(str_trim(pathToCrashData))==0 ) {
-		print("Local file name not provided.")
-		quit()
-	if ( !file.exists(pathToCrashData) ) {
-		print( paste("Local file does not exist:", pathToCrashData) )
-		quit()
+	if ( !exists("pathToCrashData") | is.na(pathToCrashData) | nchar(str_trim(pathToCrashData))==0 ) {
+		stop( "Local file name not provided." )
 	}
-	} else 
-		{rawData <- read.csv( pathToCrashData, sep=",", stringsAsFactors=FALSE )}
+	if ( !file.exists(pathToCrashData) ) {
+		stop( paste("Local file does not exist:", pathToCrashData) )
+	}
+	# at last
+	rawData <- read.csv( pathToCrashData, sep=",", stringsAsFactors=FALSE )
 }
 #
 nrow(rawData)
@@ -52,7 +56,7 @@ str(rawData)
 
 ## Step 3. Look at categorical data and see if any "odd" entries
 ```{r step03}
-#rawData categorical variables (columns) - keeping row number OBJECTID - are:
+# As a result of observation the rawData categorical variables (columns) - keeping row number OBJECTID - are:
 catcol_rawData <- c("OBJECTID", "AmbulanceR","BikeAge_Gr","Bike_Alc_D","Bike_Dir","Bike_Injur","Bike_Pos",
 "Bike_Race","Bike_Sex","City","County","CrashAlcoh","CrashDay","Crash_Grp","Crash_Hour",
 "Crash_Loc","Crash_Mont","Crash_Type","Crash_Ty_1","Crash_Year","Crsh_Sevri","Developmen","DrvrAge_Gr",
@@ -75,13 +79,11 @@ str(rawData_cat)
 ```
  
 ## Step 4. Observations  
- Note that BikeAge_Gr has 421 instances of "10-Jun" and 747 instances of "15-Nov"  
- 
-  Handle BLANKS leading and trailing  
- (will use str_trim to remove them)  
+
+  Handle BLANKS leading and trailing  (will use str_trim to remove them)  
  
  There may be some entries that have trailing blanks  
- one way to find those is
+ one way to find those is here:
 ```{r step04}
  rawData_catmelt_trblank <- dplyr::filter(rawData_catmelt, str_detect(value," +$"))
  nrow(rawData_catmelt_trblank)
@@ -96,15 +98,14 @@ str(rawData_cat)
 ```
 
 # Here are some significant observations:  
-there are 4 definitely *undependable* records in rawData: 
+There are 4 definitely *undependable* records in rawData: 
 				2902, 3188, 4108, 4620  
-there are other records that look _unreliable_:  
+There are other records that look _unreliable_:  
 				371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789  
-  
-there are records with *dates* in BikeAge_Gr  
-				421 with value "10-Jun"  
-				747 with value "15-Nov"  
- this is some kind of systematic error  
+Note that BikeAge_Gr has
+ `r rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value=="10-Jun","freq"]` instances of "10-Jun" and 
+ `r rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value=="15-Nov","freq"]` instances of "15-Nov"  
+   
 
 ## Step 5. There are records with *empty* columns or pseudo-codes for missing values:  
 (same for trimmed value)
@@ -115,8 +116,7 @@ rawData_catcount[rawData_catcount$value=="/Missing",]
 # (same for trimmed value)
 rawData_catcount[rawData_catcount$value=="Missing",]
 ```
-and City has 1297 entries with "None - Rural Crash" (may be acceptable)  
-and Crash_Loc has 9 entries with "Location" (makes no sense)
+Note that Crash_Loc has `r rawData_catcount[rawData_catcount$variable=="Crash_Loc" & stringr::str_trim(rawData_catcount$value)=="Location","freq"]` entries with "Location"  
 
 ## Step 6. "Fix" rawData  
 result will be df **rawDataFixedMiss**  
@@ -135,9 +135,9 @@ nrow(rawDataFixed)
 rawDataFixed <- rawDataFixed[ -c(2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789), ,
        drop=FALSE]
 nrow(rawDataFixed)
-# trim text fields
+# TRIM TEXT FIELDS
 mycols <- c("Bike_Injur","Crash_Loc","Crash_Type","Crsh_Sevri","Drvr_Injur","Drvr_VehTy")
-rawDataFixed[mycols] <- lapply( rawDataFixed[mycols], function(x) str_trim(x) )
+rawDataFixed[mycols] <- lapply( rawDataFixed[mycols], function(x) stringr::str_trim(x) )
 nrow(rawDataFixed)
 ```
 
@@ -146,12 +146,12 @@ using rawDataFixed as the basis
 ```{r step07}
 rawDataFixed_cat <- dplyr::select( rawDataFixed, one_of(catcol_rawData) )
 #
- rawDataFixed_catmelt <- reshape2::melt(rawDataFixed_cat,id="OBJECTID")
+ rawDataFixed_catmelt <- reshape2::melt( rawDataFixed_cat,id="OBJECTID" )
  rawDataFixed_catcount <- plyr::count( rawDataFixed_catmelt, vars=c("variable","value") )
  #
  nrow(rawDataFixed_catmelt)
  nrow(rawDataFixed_catcount)
- rawDataFixed_catmelt_trblank <- dplyr::filter(rawDataFixed_catmelt, str_detect(value," +$"))
+ rawDataFixed_catmelt_trblank <- dplyr::filter( rawDataFixed_catmelt, str_detect(value," +$") )
  #
  # the result should be zero rows:
  #
@@ -183,8 +183,9 @@ replace with NA
 ```
 
 ## Step 11. Noted in passing:   
-there are 4 Workzone_I entries with "No0" instead of "No"  
-There is 1 Crash_Loc with "Location" and 1 Crash_Type with "Location"   
+There are `r rawData_catcount[rawData_catcount$variable=="Workzone_I" & rawData_catcount$value=="No0","freq"]` Workzone_I entries with "No0" instead of "No"   
+`r rawData_catcount[rawData_catcount$variable=="Crash_Loc" & rawData_catcount$value=="Location","freq"]` Crash_Loc with "Location"
+`r rawData_catcount[rawData_catcount$variable=="Crash_Type" & rawData_catcount$value=="Location","freq"]` Crash_Type with "Location" 
 ```{r step11}
  rawDataFixedMiss[rawDataFixedMiss=="Location"] <- NA
  rawDataFixedMiss[rawDataFixedMiss=="No0"] <- "No"
@@ -201,8 +202,7 @@ There is 1 Crash_Loc with "Location" and 1 Crash_Type with "Location"
 
 ## Step 13. Write the csv file and save the session
 ```{r step13}
-# The files will be in your working directory:
-getwd()
+# The files will be in your working directory - use getwd() to see what that is
 #
 write.table(rawDataFixedMiss, "rawDataFixedMiss_MD.csv", sep="\t")
 save.image("bicycleSafetyData_MD.RData")

@@ -13,11 +13,9 @@ There is one chunk here:
 # compare current version of remote file with current contents of rawData
 # an alternative is to use the compare package
 #
-checkOldNew <- function() {
 # check to be sure rawData is there
 	if ( !exists("rawData") ) {
-		print("rawData does not exist.")
-		return()
+		stop( "rawData does not exist." )
 	}
 	print( "rawData exists" )
 	#
@@ -26,6 +24,10 @@ checkOldNew <- function() {
 	print( "read remote file" )
 	strDownload <- "CrashData.csv.gz"  
 	bikeSafetyURL <- "https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true"
+	# does URL exist and is accessible?
+	if ( !CRurl::url.exists( bikeSafetyURL ) ) {
+		stop( "URL does not exist or is not accessible." )
+	}	
 	download.file( bikeSafetyURL, strDownload, mode="wb" )
 	rawDataToCompare <- read.csv( gzfile(strDownload), stringsAsFactors = FALSE )
 	unlink(strDownload)
@@ -34,13 +36,12 @@ checkOldNew <- function() {
 	# use simple test
 	#
 	if ( !exists("rawDataToCompare") ) {
-		print("rawDataToCompare does not exist.")
-		return()
+		stop( "rawDataToCompare does not exist." )
 	}
 	print( "rawDataToCompare exists" )
 	#
 	if (identical(rawData, rawDataToCompare) ) {
-		print("representations as data frames are identical")
+		print( "representations as data frames are identical" )
 	} else {
 		#
 		# not identical
@@ -49,35 +50,29 @@ checkOldNew <- function() {
 		print( "rawData and rawDataToCompare are not identical." )
 		#
 		if ( class(rawData)!=class(rawDataToCompare) ) {
-			print( paste("class of rawDataToCompare should be data.frame but is", class(rawDataToCompare)) )
-			return()
+			stop( paste("class of rawDataToCompare should be data.frame but is", class(rawDataToCompare)) )
 		}
 		print( "class of both is data.frame" )
 		#
 		if ( nrow(rawData)!=nrow(rawDataToCompare) ) {
-			print( paste("nrow of rawData is", nrow(rawData), "but nrow of rawDataToCompare is", nrow(rawDataToCompare)) )
-			return()
+			stop( paste("nrow of rawData is", nrow(rawData), "but nrow of rawDataToCompare is", nrow(rawDataToCompare)) )
 		}
 		print( "nrow of both are the same" )
 		#
 		if ( !identical(names(rawData),names(rawDataToCompare)) ) {
-			print( "names of rawData and rawDataToCompare are different:" )
+			print( "column names of rawData and rawDataToCompare are different:" )
 			if ( length(names(rawData)==length(rawDataToCompare)) ) {
 				print( "length of names are the same" )
 			} else {
-				print("length of names of rawData is", length(names(rawData)), 
-					"but length of names of rawDataToCompare is", length(names(rawDataToCompare)) )
+				print( paste("length of names of rawData is", length(names(rawData)), 
+					"but length of names of rawDataToCompare is", length(names(rawDataToCompare))) )
 			}
 			names(rawData)
 			names(rawDataToCompare)
-			return()
+			stop()
 		}
-		print( "names of both are the same" )
+		print( "column names of both are the same" )
 		#
 		print( "no more ideas right now - look closely to find the difference")
 	}
-}
-# ##########################
-checkOldNew()
-# ##########################
 ```
