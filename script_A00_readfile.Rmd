@@ -17,31 +17,38 @@ require(reshape2)
 ```
 
 ## Step 1. Read the csv file acquired from the github project  
+ 
 set "download" TRUE if file to be read from remote host  
 set "download" FALSE if skipping remote read and using local csv file  
+Presumption is that all files will be in the current working directory  
+If you read the remote file it will be placed in strDownload in its original form 
+and also a csv representation of it will be written to localCopyOfRemoteFile_csv  
+If you read the local copy it must be in localCopyOfRemoteFile_csv
+
 ```{r step01}
 # borrowed from Brian:
 #
+strDownload <- "CrashDataFromRemote.csv.gz"  
+localCopyOfRemoteFile_csv <- "RawDataFromRemote.csv"
+bikeSafetyURL <- "https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true"
+#
 download <- FALSE
-## entire path including file name
-pathToCrashData <- "C:/Users/David Hopp/CodeForAmerica/bicycleData/scripts/RawDataFromRemote.csv" 
 #
 if (download) {
-  strDownload <- "CrashData.csv.gz"  
-  bikeSafetyURL <- "https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true"
   download.file( bikeSafetyURL, strDownload, mode="wb" )
   rawData <- read.csv( gzfile(strDownload), stringsAsFactors = FALSE )
   unlink(strDownload)
-  rawData %>% write.csv( "RawDataFromRemote.csv", row.names = FALSE )
+  # write file as csv
+  rawData %>% write.csv( localCopyOfRemoteFile_csv, row.names = FALSE )
 } else {
-	if ( !exists("pathToCrashData") | is.na(pathToCrashData) | nchar(str_trim(pathToCrashData))==0 ) {
+	if ( !exists("localCopyOfRemoteFile_csv") | is.na(localCopyOfRemoteFile_csv) | nchar(str_trim(localCopyOfRemoteFile_csv))==0 ) {
 		stop( "Local file name not provided." )
 	}
-	if ( !file.exists(pathToCrashData) ) {
-		stop( paste("Local file does not exist:", pathToCrashData) )
+	if ( !file.exists(localCopyOfRemoteFile_csv) ) {
+		stop( paste("Local file does not exist:", localCopyOfRemoteFile_csv) )
 	}
 	# at last
-	rawData <- read.csv( pathToCrashData, sep=",", stringsAsFactors=FALSE )
+	rawData <- read.csv( localCopyOfRemoteFile_csv, sep=",", stringsAsFactors=FALSE )
 }
 #
 nrow(rawData)

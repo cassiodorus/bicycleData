@@ -123,371 +123,79 @@ $(document).ready(function () {
 </div>
 
 
-<p>R markdown script to perform all operations<br />
-leading to the final output csv file rawDataFixedMiss.csv</p>
-<div id="step-0.-make-sure-required-packages-loaded" class="section level2">
-<h2>Step 0. Make sure required packages loaded</h2>
-<pre class="r"><code>require(plyr)
-require(dplyr)
-require(stringr)
-require(reshape2)</code></pre>
+<div id="comparing-versions-of-north_carolina_bicycle_crash_data.csv.gz" class="section level1">
+<h1>Comparing Versions of North_Carolina_Bicycle_Crash_Data.csv.gz</h1>
+<p>This script compares a new verion of the bicycle safety data file North_Carolina_Bicycle_Crash_Data.csv.gz with what is already in the R project as the data frame rawData.</p>
+<div id="step-01.-load-bicyclesafetydata_md.rdata" class="section level2">
+<h2>Step 01. Load bicycleSafetyData_MD.RData</h2>
+<pre class="r"><code>load( &quot;bicycleSafetyData_MD.RData&quot; )</code></pre>
 </div>
-<div id="step-1.-read-the-csv-file-acquired-from-the-github-project" class="section level2">
-<h2>Step 1. Read the csv file acquired from the github project</h2>
-<p>set “download” TRUE if file to be read from remote host<br />
-set “download” FALSE if skipping remote read and using local csv file<br />
-Presumption is that all files will be in the current working directory<br />
-If you read the remote file it will be placed in strDownload in its original form and also a csv representation of it will be written to localCopyOfRemoteFile_csv<br />
-If you read the local copy it must be in localCopyOfRemoteFile_csv</p>
-<pre class="r"><code># borrowed from Brian:
+<div id="step-2.-compare-data" class="section level2">
+<h2>Step 2. Compare data</h2>
+<pre class="r"><code>#
+# compare current version of remote file with current contents of rawData
+# an alternative is to use the compare package
 #
-strDownload &lt;- &quot;CrashDataFromRemote.csv.gz&quot;  
-localCopyOfRemoteFile_csv &lt;- &quot;RawDataFromRemote.csv&quot;
-bikeSafetyURL &lt;- &quot;https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true&quot;
-#
-download &lt;- FALSE
-#
-if (download) {
-  download.file( bikeSafetyURL, strDownload, mode=&quot;wb&quot; )
-  rawData &lt;- read.csv( gzfile(strDownload), stringsAsFactors = FALSE )
-  unlink(strDownload)
-  # write file as csv
-  rawData %&gt;% write.csv( localCopyOfRemoteFile_csv, row.names = FALSE )
-} else {
-    if ( !exists(&quot;localCopyOfRemoteFile_csv&quot;) | is.na(localCopyOfRemoteFile_csv) | nchar(str_trim(localCopyOfRemoteFile_csv))==0 ) {
-        stop( &quot;Local file name not provided.&quot; )
+# check to be sure rawData is there
+    if ( !exists(&quot;rawData&quot;) ) {
+        stop( &quot;rawData does not exist.&quot; )
     }
-    if ( !file.exists(localCopyOfRemoteFile_csv) ) {
-        stop( paste(&quot;Local file does not exist:&quot;, localCopyOfRemoteFile_csv) )
+    #
+    # read current version of remote file
+    #
+    strDownload &lt;- &quot;CrashData.csv.gz&quot;  
+    bikeSafetyURL &lt;- &quot;https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true&quot;
+    # does URL exist and is accessible?
+    if ( !RCurl::url.exists( bikeSafetyURL ) ) {
+        stop( &quot;URL does not exist or is not accessible.&quot; )
+    }   
+    download.file( bikeSafetyURL, strDownload, mode=&quot;wb&quot; )
+    rawDataToCompare &lt;- read.csv( gzfile(strDownload), stringsAsFactors = FALSE )
+    unlink(strDownload)
+    rawDataToCompare %&gt;% write.csv( &quot;RawDataFromRemote.csv&quot;, row.names = FALSE )
+    #
+    # use simple test
+    #
+    if ( !exists(&quot;rawDataToCompare&quot;) ) {
+        stop( &quot;rawDataToCompare does not exist.&quot; )
     }
-    # at last
-    rawData &lt;- read.csv( localCopyOfRemoteFile_csv, sep=&quot;,&quot;, stringsAsFactors=FALSE )
-}
-#
-nrow(rawData)</code></pre>
-<pre><code>## [1] 5716</code></pre>
-<pre class="r"><code>str(rawData)</code></pre>
-<pre><code>## 'data.frame':    5716 obs. of  56 variables:
-##  $ FID       : int  0 1 2 3 4 5 6 7 8 9 ...
-##  $ OBJECTID  : int  1 2 3 4 5 6 7 8 9 10 ...
-##  $ AmbulanceR: chr  &quot;Yes&quot; &quot;Yes&quot; &quot;Yes&quot; &quot;Yes&quot; ...
-##  $ BikeAge_Gr: chr  &quot;&quot; &quot;20-24&quot; &quot;30-39&quot; &quot;30-39&quot; ...
-##  $ Bike_Age  : chr  &quot;11&quot; &quot;20&quot; &quot;37&quot; &quot;30&quot; ...
-##  $ Bike_Alc_D: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Bike_Dir  : chr  &quot;With Traffic&quot; &quot;Facing Traffic&quot; &quot;&quot; &quot;With Traffic&quot; ...
-##  $ Bike_Injur: chr  &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; ...
-##  $ Bike_Pos  : chr  &quot;Sidewalk / Crosswalk / Driveway Crossing&quot; &quot;Sidewalk / Crosswalk / Driveway Crossing&quot; &quot;Non-Roadway&quot; &quot;Travel Lane&quot; ...
-##  $ Bike_Race : chr  &quot;Black&quot; &quot;Hispanic&quot; &quot;Black&quot; &quot;White&quot; ...
-##  $ Bike_Sex  : chr  &quot;Male&quot; &quot;Male&quot; &quot;Male&quot; &quot;Male&quot; ...
-##  $ City      : chr  &quot;Durham&quot; &quot;Cary&quot; &quot;Stallings&quot; &quot;Salisbury&quot; ...
-##  $ County    : chr  &quot;Durham&quot; &quot;Wake&quot; &quot;Union&quot; &quot;Rowan&quot; ...
-##  $ CrashAlcoh: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ CrashDay  : chr  &quot;Tuesday&quot; &quot;Friday&quot; &quot;Monday&quot; &quot;Friday&quot; ...
-##  $ Crash_Date: chr  &quot;01/02/2007 12:00:00 AM&quot; &quot;01/12/2007 12:00:00 AM&quot; &quot;01/15/2007 12:00:00 AM&quot; &quot;01/19/2007 12:00:00 AM&quot; ...
-##  $ Crash_Grp : chr  &quot;Parallel Paths - Other Circumstances&quot; &quot;Motorist Failed to Yield - Signalized Intersection&quot; &quot;Non-Roadway&quot; &quot;Motorist Left Turn / Merge&quot; ...
-##  $ Crash_Hour: int  16 9 17 17 12 9 19 15 8 9 ...
-##  $ Crash_Loc : chr  &quot;Non-Intersection&quot; &quot;Intersection&quot; &quot;Non-Roadway&quot; &quot;Intersection&quot; ...
-##  $ Crash_Mont: chr  &quot;January&quot; &quot;January&quot; &quot;January&quot; &quot;January&quot; ...
-##  $ Crash_Time: chr  &quot;16:41&quot; &quot;9:34&quot; &quot;17:55&quot; &quot;17:25&quot; ...
-##  $ Crash_Type: chr  &quot;Bicyclist Ride Out - Parallel Path&quot; &quot;Motorist Drive Out - Right Turn on Red&quot; &quot;Non-Roadway&quot; &quot;Motorist Left Turn - Opposite Direction&quot; ...
-##  $ Crash_Ty_1: int  331225 132151 460910 111212 311235 131153 311231 111142 321239 211239 ...
-##  $ Crash_Year: int  2007 2007 2007 2007 2007 2007 2007 2007 2007 2007 ...
-##  $ Crsh_Sevri: chr  &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; ...
-##  $ Developmen: chr  &quot;Residential&quot; &quot;Residential&quot; &quot;Commercial&quot; &quot;Commercial&quot; ...
-##  $ DrvrAge_Gr: chr  &quot;30-39&quot; &quot;60-69&quot; &quot;30-39&quot; &quot;&quot; ...
-##  $ Drvr_Age  : chr  &quot;35&quot; &quot;64&quot; &quot;39&quot; &quot;&quot; ...
-##  $ Drvr_Alc_D: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Drvr_EstSp: chr  &quot;31-35 mph&quot; &quot;0-5 mph&quot; &quot;6-10 mph&quot; &quot;31-35 mph&quot; ...
-##  $ Drvr_Injur: chr  &quot;O: No Injury&quot; &quot;O: No Injury&quot; &quot;O: No Injury&quot; &quot; Injury&quot; ...
-##  $ Drvr_Race : chr  &quot;White&quot; &quot;White&quot; &quot;White&quot; &quot;/Missing&quot; ...
-##  $ Drvr_Sex  : chr  &quot;Male&quot; &quot;Male&quot; &quot;Female&quot; &quot;&quot; ...
-##  $ Drvr_VehTy: chr  &quot;Passenger Car&quot; &quot;Passenger Car&quot; &quot;Passenger Car&quot; &quot;Sport Utility&quot; ...
-##  $ ExcsSpdInd: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Hit_Run   : chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;Yes&quot; ...
-##  $ Latitude  : num  36 35.8 35.1 35.7 35 ...
-##  $ Light_Cond: chr  &quot;Daylight&quot; &quot;Daylight&quot; &quot;Dusk&quot; &quot;Daylight&quot; ...
-##  $ Locality  : chr  &quot;Urban (&gt;70% Developed)&quot; &quot;Urban (&gt;70% Developed)&quot; &quot;Urban (&gt;70% Developed)&quot; &quot;Urban (&gt;70% Developed)&quot; ...
-##  $ Longitude : num  -78.9 -78.8 -80.7 -80.5 -78.9 ...
-##  $ Num_Lanes : chr  &quot;1 lane&quot; &quot;3 lanes&quot; &quot;2 lanes&quot; &quot;2 lanes&quot; ...
-##  $ Num_Units : int  2 2 2 2 2 2 2 2 2 2 ...
-##  $ Rd_Charact: chr  &quot;Straight - Level&quot; &quot;Straight - Grade&quot; &quot;Straight - Level&quot; &quot;Straight - Grade&quot; ...
-##  $ Rd_Class  : chr  &quot;Local Street&quot; &quot;Local Street&quot; &quot;Public Vehicular Area&quot; &quot;Local Street&quot; ...
-##  $ Rd_Conditi: chr  &quot;Dry&quot; &quot;Dry&quot; &quot;Dry&quot; &quot;Dry&quot; ...
-##  $ Rd_Config : chr  &quot;Two-Way, Divided, Unprotected Median&quot; &quot;Two-Way, Divided, Unprotected Median&quot; &quot;Two-Way, Not Divided&quot; &quot;Two-Way, Not Divided&quot; ...
-##  $ Rd_Defects: chr  &quot;None&quot; &quot;None&quot; &quot;None&quot; &quot;None&quot; ...
-##  $ Rd_Feature: chr  &quot;No Special Feature&quot; &quot;Four-Way Intersection&quot; &quot;No Special Feature&quot; &quot;Four-Way Intersection&quot; ...
-##  $ Rd_Surface: chr  &quot;Smooth Asphalt&quot; &quot;Smooth Asphalt&quot; &quot;Smooth Asphalt&quot; &quot;Smooth Asphalt&quot; ...
-##  $ Region    : chr  &quot;Piedmont&quot; &quot;Piedmont&quot; &quot;Piedmont&quot; &quot;Piedmont&quot; ...
-##  $ Rural_Urba: chr  &quot;Urban&quot; &quot;Urban&quot; &quot;Urban&quot; &quot;Urban&quot; ...
-##  $ Speed_Limi: chr  &quot;30 - 35  MPH&quot; &quot;30 - 35  MPH&quot; &quot;20 - 25  MPH&quot; &quot;30 - 35  MPH&quot; ...
-##  $ Traff_Cntr: chr  &quot;No Control Present&quot; &quot;Stop And Go Signal&quot; &quot;No Control Present&quot; &quot;No Control Present&quot; ...
-##  $ Weather   : chr  &quot;Clear&quot; &quot;Clear&quot; &quot;Cloudy&quot; &quot;Cloudy&quot; ...
-##  $ Workzone_I: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Location  : chr  &quot;(36.03949, -78.883896)&quot; &quot;(35.751118, -78.7828)&quot; &quot;(35.084732, -80.69782)&quot; &quot;(35.6844, -80.47932)&quot; ...</code></pre>
-</div>
-<div id="step-2.-look-at-some-data-values" class="section level2">
-<h2>Step 2. Look at some data values</h2>
-<pre class="r"><code> plyr::count(rawData, vars=&quot;BikeAge_Gr&quot;)</code></pre>
-<pre><code>##    BikeAge_Gr freq
-## 1              112
-## 2         0-5   60
-## 3      10-Jun  421
-## 4      15-Nov  747
-## 5       16-19  605
-## 6       20-24  680
-## 7       25-29  430
-## 8       30-39  658
-## 9       40-49  920
-## 10      50-59  739
-## 11      60-69  274
-## 12         70   12
-## 13        70+   58</code></pre>
-<pre class="r"><code># notice the erroneous values at lines 3 and 4</code></pre>
-</div>
-<div id="step-3.-look-at-categorical-data-and-see-if-any-odd-entries" class="section level2">
-<h2>Step 3. Look at categorical data and see if any “odd” entries</h2>
-<pre class="r"><code># As a result of observation the rawData categorical variables (columns) - keeping row number OBJECTID - are:
-catcol_rawData &lt;- c(&quot;OBJECTID&quot;, &quot;AmbulanceR&quot;,&quot;BikeAge_Gr&quot;,&quot;Bike_Alc_D&quot;,&quot;Bike_Dir&quot;,&quot;Bike_Injur&quot;,&quot;Bike_Pos&quot;,
-&quot;Bike_Race&quot;,&quot;Bike_Sex&quot;,&quot;City&quot;,&quot;County&quot;,&quot;CrashAlcoh&quot;,&quot;CrashDay&quot;,&quot;Crash_Grp&quot;,&quot;Crash_Hour&quot;,
-&quot;Crash_Loc&quot;,&quot;Crash_Mont&quot;,&quot;Crash_Type&quot;,&quot;Crash_Ty_1&quot;,&quot;Crash_Year&quot;,&quot;Crsh_Sevri&quot;,&quot;Developmen&quot;,&quot;DrvrAge_Gr&quot;,
-&quot;Drvr_Age&quot;,&quot;Drvr_Alc_D&quot;,&quot;Drvr_EstSp&quot;,&quot;Drvr_Injur&quot;,&quot;Drvr_Race&quot;,&quot;Drvr_Sex&quot;,&quot;Drvr_VehTy&quot;,&quot;ExcsSpdInd&quot;,&quot;Hit_Run&quot;,
-&quot;Light_Cond&quot;,&quot;Locality&quot;,&quot;Num_Lanes&quot;,&quot;Num_Units&quot;,&quot;Rd_Charact&quot;,&quot;Rd_Class&quot;,&quot;Rd_Conditi&quot;,
-&quot;Rd_Config&quot;,&quot;Rd_Defects&quot;,&quot;Rd_Feature&quot;,&quot;Rd_Surface&quot;,&quot;Region&quot;,&quot;Rural_Urba&quot;,&quot;Speed_Limi&quot;,&quot;Traff_Cntr&quot;,&quot;Weather&quot;,
-&quot;Workzone_I&quot; )
-#
-# work with only the categorical columns
-rawData_cat &lt;- dplyr::select( rawData, one_of(catcol_rawData) )
-#
-str(rawData_cat)</code></pre>
-<pre><code>## 'data.frame':    5716 obs. of  49 variables:
-##  $ OBJECTID  : int  1 2 3 4 5 6 7 8 9 10 ...
-##  $ AmbulanceR: chr  &quot;Yes&quot; &quot;Yes&quot; &quot;Yes&quot; &quot;Yes&quot; ...
-##  $ BikeAge_Gr: chr  &quot;&quot; &quot;20-24&quot; &quot;30-39&quot; &quot;30-39&quot; ...
-##  $ Bike_Alc_D: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Bike_Dir  : chr  &quot;With Traffic&quot; &quot;Facing Traffic&quot; &quot;&quot; &quot;With Traffic&quot; ...
-##  $ Bike_Injur: chr  &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; ...
-##  $ Bike_Pos  : chr  &quot;Sidewalk / Crosswalk / Driveway Crossing&quot; &quot;Sidewalk / Crosswalk / Driveway Crossing&quot; &quot;Non-Roadway&quot; &quot;Travel Lane&quot; ...
-##  $ Bike_Race : chr  &quot;Black&quot; &quot;Hispanic&quot; &quot;Black&quot; &quot;White&quot; ...
-##  $ Bike_Sex  : chr  &quot;Male&quot; &quot;Male&quot; &quot;Male&quot; &quot;Male&quot; ...
-##  $ City      : chr  &quot;Durham&quot; &quot;Cary&quot; &quot;Stallings&quot; &quot;Salisbury&quot; ...
-##  $ County    : chr  &quot;Durham&quot; &quot;Wake&quot; &quot;Union&quot; &quot;Rowan&quot; ...
-##  $ CrashAlcoh: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ CrashDay  : chr  &quot;Tuesday&quot; &quot;Friday&quot; &quot;Monday&quot; &quot;Friday&quot; ...
-##  $ Crash_Grp : chr  &quot;Parallel Paths - Other Circumstances&quot; &quot;Motorist Failed to Yield - Signalized Intersection&quot; &quot;Non-Roadway&quot; &quot;Motorist Left Turn / Merge&quot; ...
-##  $ Crash_Hour: int  16 9 17 17 12 9 19 15 8 9 ...
-##  $ Crash_Loc : chr  &quot;Non-Intersection&quot; &quot;Intersection&quot; &quot;Non-Roadway&quot; &quot;Intersection&quot; ...
-##  $ Crash_Mont: chr  &quot;January&quot; &quot;January&quot; &quot;January&quot; &quot;January&quot; ...
-##  $ Crash_Type: chr  &quot;Bicyclist Ride Out - Parallel Path&quot; &quot;Motorist Drive Out - Right Turn on Red&quot; &quot;Non-Roadway&quot; &quot;Motorist Left Turn - Opposite Direction&quot; ...
-##  $ Crash_Ty_1: int  331225 132151 460910 111212 311235 131153 311231 111142 321239 211239 ...
-##  $ Crash_Year: int  2007 2007 2007 2007 2007 2007 2007 2007 2007 2007 ...
-##  $ Crsh_Sevri: chr  &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; &quot;B: Evident Injury&quot; &quot;C: Possible Injury&quot; ...
-##  $ Developmen: chr  &quot;Residential&quot; &quot;Residential&quot; &quot;Commercial&quot; &quot;Commercial&quot; ...
-##  $ DrvrAge_Gr: chr  &quot;30-39&quot; &quot;60-69&quot; &quot;30-39&quot; &quot;&quot; ...
-##  $ Drvr_Age  : chr  &quot;35&quot; &quot;64&quot; &quot;39&quot; &quot;&quot; ...
-##  $ Drvr_Alc_D: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Drvr_EstSp: chr  &quot;31-35 mph&quot; &quot;0-5 mph&quot; &quot;6-10 mph&quot; &quot;31-35 mph&quot; ...
-##  $ Drvr_Injur: chr  &quot;O: No Injury&quot; &quot;O: No Injury&quot; &quot;O: No Injury&quot; &quot; Injury&quot; ...
-##  $ Drvr_Race : chr  &quot;White&quot; &quot;White&quot; &quot;White&quot; &quot;/Missing&quot; ...
-##  $ Drvr_Sex  : chr  &quot;Male&quot; &quot;Male&quot; &quot;Female&quot; &quot;&quot; ...
-##  $ Drvr_VehTy: chr  &quot;Passenger Car&quot; &quot;Passenger Car&quot; &quot;Passenger Car&quot; &quot;Sport Utility&quot; ...
-##  $ ExcsSpdInd: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
-##  $ Hit_Run   : chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;Yes&quot; ...
-##  $ Light_Cond: chr  &quot;Daylight&quot; &quot;Daylight&quot; &quot;Dusk&quot; &quot;Daylight&quot; ...
-##  $ Locality  : chr  &quot;Urban (&gt;70% Developed)&quot; &quot;Urban (&gt;70% Developed)&quot; &quot;Urban (&gt;70% Developed)&quot; &quot;Urban (&gt;70% Developed)&quot; ...
-##  $ Num_Lanes : chr  &quot;1 lane&quot; &quot;3 lanes&quot; &quot;2 lanes&quot; &quot;2 lanes&quot; ...
-##  $ Num_Units : int  2 2 2 2 2 2 2 2 2 2 ...
-##  $ Rd_Charact: chr  &quot;Straight - Level&quot; &quot;Straight - Grade&quot; &quot;Straight - Level&quot; &quot;Straight - Grade&quot; ...
-##  $ Rd_Class  : chr  &quot;Local Street&quot; &quot;Local Street&quot; &quot;Public Vehicular Area&quot; &quot;Local Street&quot; ...
-##  $ Rd_Conditi: chr  &quot;Dry&quot; &quot;Dry&quot; &quot;Dry&quot; &quot;Dry&quot; ...
-##  $ Rd_Config : chr  &quot;Two-Way, Divided, Unprotected Median&quot; &quot;Two-Way, Divided, Unprotected Median&quot; &quot;Two-Way, Not Divided&quot; &quot;Two-Way, Not Divided&quot; ...
-##  $ Rd_Defects: chr  &quot;None&quot; &quot;None&quot; &quot;None&quot; &quot;None&quot; ...
-##  $ Rd_Feature: chr  &quot;No Special Feature&quot; &quot;Four-Way Intersection&quot; &quot;No Special Feature&quot; &quot;Four-Way Intersection&quot; ...
-##  $ Rd_Surface: chr  &quot;Smooth Asphalt&quot; &quot;Smooth Asphalt&quot; &quot;Smooth Asphalt&quot; &quot;Smooth Asphalt&quot; ...
-##  $ Region    : chr  &quot;Piedmont&quot; &quot;Piedmont&quot; &quot;Piedmont&quot; &quot;Piedmont&quot; ...
-##  $ Rural_Urba: chr  &quot;Urban&quot; &quot;Urban&quot; &quot;Urban&quot; &quot;Urban&quot; ...
-##  $ Speed_Limi: chr  &quot;30 - 35  MPH&quot; &quot;30 - 35  MPH&quot; &quot;20 - 25  MPH&quot; &quot;30 - 35  MPH&quot; ...
-##  $ Traff_Cntr: chr  &quot;No Control Present&quot; &quot;Stop And Go Signal&quot; &quot;No Control Present&quot; &quot;No Control Present&quot; ...
-##  $ Weather   : chr  &quot;Clear&quot; &quot;Clear&quot; &quot;Cloudy&quot; &quot;Cloudy&quot; ...
-##  $ Workzone_I: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...</code></pre>
-<pre class="r"><code> # compute the values and counts of the categorical columns
- # these will require visual review to identify any odd entries
- #
- rawData_catmelt &lt;- reshape2::melt(rawData_cat,id=&quot;OBJECTID&quot;)
- nrow(rawData_catmelt)</code></pre>
-<pre><code>## [1] 274368</code></pre>
-<pre class="r"><code> rawData_catcount &lt;- plyr::count( rawData_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
- nrow(rawData_catcount)</code></pre>
-<pre><code>## [1] 1395</code></pre>
-</div>
-<div id="step-4.-observations" class="section level2">
-<h2>Step 4. Observations</h2>
-<p>Handle BLANKS leading and trailing (will use str_trim to remove them)</p>
-<p>There may be some entries that have trailing blanks<br />
- one way to find those is here:</p>
-<pre class="r"><code> rawData_catmelt_trblank &lt;- dplyr::filter(rawData_catmelt, str_detect(value,&quot; +$&quot;))
- nrow(rawData_catmelt_trblank)</code></pre>
-<pre><code>## [1] 860</code></pre>
-<pre class="r"><code> # which var has trailing blanks?
- unique(rawData_catmelt_trblank$variable)</code></pre>
-<pre><code>## [1] Crash_Type
-## 48 Levels: AmbulanceR BikeAge_Gr Bike_Alc_D Bike_Dir ... Workzone_I</code></pre>
-<pre class="r"><code> #
- # some may start with a blank
- rawData_catmelt_strblank &lt;- dplyr::filter(rawData_catmelt, str_detect(value,&quot;^ +&quot;))
- nrow(rawData_catmelt_strblank)</code></pre>
-<pre><code>## [1] 909</code></pre>
-<pre class="r"><code> #
- reshape2::dcast(rawData_catmelt_strblank,value~variable)</code></pre>
-<pre><code>## Aggregation function missing: defaulting to length</code></pre>
-<pre><code>##             value Bike_Injur Crash_Loc Crash_Type Crsh_Sevri Drvr_Injur
-## 1  Approach Paths          0         0         54          0          0
-## 2     Heavy Truck          0         0          0          0          0
-## 3          Injury        136         0          0         31        666
-## 4        Location          0         9          9          0          0
-##   Drvr_VehTy
-## 1          0
-## 2          4
-## 3          0
-## 4          0</code></pre>
-</div>
-<div id="here-are-some-significant-observations" class="section level1">
-<h1>Here are some significant observations:</h1>
-<p>There are 4 definitely <em>undependable</em> records in rawData: 2902, 3188, 4108, 4620<br />
-There are other records that look <em>unreliable</em>:<br />
- 371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789<br />
-Note that BikeAge_Gr has 421 instances of “10-Jun” and 747 instances of “15-Nov”</p>
-<div id="step-5.-there-are-records-with-empty-columns-or-pseudo-codes-for-missing-values" class="section level2">
-<h2>Step 5. There are records with <em>empty</em> columns or pseudo-codes for missing values:</h2>
-<p>(same for trimmed value)</p>
-<pre class="r"><code>rawData_catcount[rawData_catcount$value==&quot;&quot;,]</code></pre>
-<pre><code>##        variable value freq
-## 3    BikeAge_Gr        112
-## 19     Bike_Dir        276
-## 31     Bike_Pos        249
-## 47     Bike_Sex         96
-## NA         &lt;NA&gt;  &lt;NA&gt;   NA
-## 1123 DrvrAge_Gr        759
-## 1133   Drvr_Age        759
-## 1198 Drvr_EstSp        475
-## 1229   Drvr_Sex        758
-## 1232 Drvr_VehTy        505
-## 1260 Light_Cond          8
-## 1271  Num_Lanes        319
-## 1287 Rd_Charact         29
-## 1297   Rd_Class         16
-## 1306 Rd_Conditi         17
-## 1314  Rd_Config         58
-## 1319 Rd_Defects         26
-## 1352 Rd_Surface         19
-## 1366 Speed_Limi        287</code></pre>
-<pre class="r"><code># (same for trimmed value)
-rawData_catcount[rawData_catcount$value==&quot;/Missing&quot;,]</code></pre>
-<pre><code>##       variable    value freq
-## 40   Bike_Race /Missing  131
-## NA        &lt;NA&gt;     &lt;NA&gt;   NA
-## 1222 Drvr_Race /Missing  778</code></pre>
-<pre class="r"><code># (same for trimmed value)
-rawData_catcount[rawData_catcount$value==&quot;Missing&quot;,]</code></pre>
-<pre><code>##        variable   value freq
-## 16   Bike_Alc_D Missing   63
-## NA         &lt;NA&gt;    &lt;NA&gt;   NA
-## 1195 Drvr_Alc_D Missing  632
-## 1378 Traff_Cntr Missing  153</code></pre>
-<p>Note that Crash_Loc has 9, 1 entries with “Location”</p>
-</div>
-<div id="step-6.-fix-rawdata" class="section level2">
-<h2>Step 6. “Fix” rawData</h2>
-<p>result will be df <strong>rawDataFixedMiss</strong></p>
-<p>SPECIAL TREATMENT OF COLUMNS Longitude and Location<br />
- zeroes appear in both, as 0 and 0.00000 for Longitude<br />
- and (0, 0) for Location (watch out for the space)<br />
- these are best replaced with NA but that depends on<br />
- how Location is handled in the subsequent processing programs.<br />
- For now, replace with NA</p>
-<pre class="r"><code>rawDataFixed &lt;- rawData
-nrow(rawDataFixed)</code></pre>
-<pre><code>## [1] 5716</code></pre>
-<pre class="r"><code># remove suspicious rows 
-rawDataFixed &lt;- rawDataFixed[ -c(2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789), ,
-       drop=FALSE]
-nrow(rawDataFixed)</code></pre>
-<pre><code>## [1] 5703</code></pre>
-<pre class="r"><code># TRIM TEXT FIELDS
-mycols &lt;- c(&quot;Bike_Injur&quot;,&quot;Crash_Loc&quot;,&quot;Crash_Type&quot;,&quot;Crsh_Sevri&quot;,&quot;Drvr_Injur&quot;,&quot;Drvr_VehTy&quot;)
-rawDataFixed[mycols] &lt;- lapply( rawDataFixed[mycols], function(x) stringr::str_trim(x) )
-nrow(rawDataFixed)</code></pre>
-<pre><code>## [1] 5703</code></pre>
-</div>
-<div id="step-7.-go-through-prep-steps-for-categorical-variables" class="section level2">
-<h2>Step 7. Go through prep steps for categorical variables</h2>
-<p>using rawDataFixed as the basis</p>
-<pre class="r"><code>rawDataFixed_cat &lt;- dplyr::select( rawDataFixed, one_of(catcol_rawData) )
-#
- rawDataFixed_catmelt &lt;- reshape2::melt( rawDataFixed_cat,id=&quot;OBJECTID&quot; )
- rawDataFixed_catcount &lt;- plyr::count( rawDataFixed_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
- #
- nrow(rawDataFixed_catmelt)</code></pre>
-<pre><code>## [1] 273744</code></pre>
-<pre class="r"><code> nrow(rawDataFixed_catcount)</code></pre>
-<pre><code>## [1] 1369</code></pre>
-<pre class="r"><code> rawDataFixed_catmelt_trblank &lt;- dplyr::filter( rawDataFixed_catmelt, str_detect(value,&quot; +$&quot;) )
- #
- # the result should be zero rows:
- #
- nrow(rawDataFixed_catmelt_trblank)</code></pre>
-<pre><code>## [1] 0</code></pre>
-</div>
-<div id="step-8.-fix-missing-values" class="section level2">
-<h2>Step 8. Fix missing values</h2>
-<p>replace with NA</p>
-<pre class="r"><code> rawDataFixedMiss &lt;- rawDataFixed
- rawDataFixedMiss[rawDataFixedMiss==&quot;&quot; | rawDataFixedMiss==&quot;.&quot; | rawDataFixedMiss==&quot;Missing&quot; | rawDataFixedMiss==&quot;/Missing&quot;] &lt;- NA
- nrow(rawDataFixedMiss)</code></pre>
-<pre><code>## [1] 5703</code></pre>
-</div>
-<div id="step-9.-fix-longitude-and-location---replace-zeros-with-na" class="section level2">
-<h2>Step 9. Fix Longitude and Location - replace zeros with NA</h2>
-<pre class="r"><code> sum(rawDataFixedMiss$Location==&quot;(0, 0)&quot;)</code></pre>
-<pre><code>## [1] 1014</code></pre>
-<pre class="r"><code> rawDataFixedMiss$Location[rawDataFixedMiss$Location==&quot;(0, 0)&quot;] &lt;- NA
- sum(is.na(rawDataFixedMiss$Location))</code></pre>
-<pre><code>## [1] 1014</code></pre>
-<pre class="r"><code> sum(rawDataFixedMiss$Longitude==0)</code></pre>
-<pre><code>## [1] 1014</code></pre>
-<pre class="r"><code> rawDataFixedMiss$Longitude[rawDataFixedMiss$Longitude==0] &lt;- NA
- sum(is.na(rawDataFixedMiss$Longitude))</code></pre>
-<pre><code>## [1] 1014</code></pre>
-</div>
-<div id="step-10.-fix-bikeage_gr-when-it-contains-10-jun-or-15-nov" class="section level2">
-<h2>Step 10. Fix BikeAge_Gr when it contains “10-Jun” or “15-Nov”</h2>
-<pre class="r"><code> rawDataFixedMiss$BikeAge_Gr[rawDataFixedMiss$BikeAge_Gr %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;)] &lt;- NA</code></pre>
-</div>
-<div id="step-11.-noted-in-passing" class="section level2">
-<h2>Step 11. Noted in passing:</h2>
-<p>There are 4 Workzone_I entries with “No0” instead of “No”<br />
-1 Crash_Loc with “Location” 1 Crash_Type with “Location”</p>
-<pre class="r"><code> rawDataFixedMiss[rawDataFixedMiss==&quot;Location&quot;] &lt;- NA
- rawDataFixedMiss[rawDataFixedMiss==&quot;No0&quot;] &lt;- &quot;No&quot;</code></pre>
-</div>
-<div id="step-12.-look-closely-at-the-categorical-variables" class="section level2">
-<h2>Step 12. Look closely at the categorical variables</h2>
-<pre class="r"><code> rawDataFixedMiss_cat &lt;- dplyr::select( rawDataFixedMiss, one_of(catcol_rawData) )
- rawDataFixedMiss_catmelt &lt;- reshape2::melt(rawDataFixedMiss_cat,id=&quot;OBJECTID&quot;)
- rawDataFixedMiss_catcount &lt;- plyr::count( rawDataFixedMiss_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
- nrow(rawDataFixedMiss_catmelt)</code></pre>
-<pre><code>## [1] 273744</code></pre>
-<pre class="r"><code> nrow(rawDataFixedMiss_catcount)</code></pre>
-<pre><code>## [1] 1365</code></pre>
-</div>
-<div id="step-13.-write-the-csv-file-and-save-the-session" class="section level2">
-<h2>Step 13. Write the csv file and save the session</h2>
-<pre class="r"><code># The files will be in your working directory - use getwd() to see what that is
-#
-write.table(rawDataFixedMiss, &quot;rawDataFixedMiss_MD.csv&quot;, sep=&quot;\t&quot;)
-save.image(&quot;bicycleSafetyData_MD.RData&quot;)</code></pre>
-</div>
-<div id="finis" class="section level2">
-<h2>FINIS</h2>
+    #
+    if (identical(rawData, rawDataToCompare) ) {
+        print( &quot;representations as data frames are identical&quot; )
+    } else {
+        #
+        # not identical
+        # look at some possible problems
+        #
+        print( &quot;rawData and rawDataToCompare are not identical.&quot; )
+        #
+        if ( class(rawData)!=class(rawDataToCompare) ) {
+            stop( paste(&quot;class of rawDataToCompare should be data.frame but is&quot;, class(rawDataToCompare)) )
+        }
+        print( &quot;class of both is data.frame&quot; )
+        #
+        if ( nrow(rawData)!=nrow(rawDataToCompare) ) {
+            stop( paste(&quot;nrow of rawData is&quot;, nrow(rawData), &quot;but nrow of rawDataToCompare is&quot;, nrow(rawDataToCompare)) )
+        }
+        print( &quot;nrow of both are the same&quot; )
+        #
+        if ( !identical(names(rawData),names(rawDataToCompare)) ) {
+            print( &quot;column names of rawData and rawDataToCompare are different:&quot; )
+            if ( length(names(rawData)==length(rawDataToCompare)) ) {
+                print( &quot;length of names are the same&quot; )
+            } else {
+                print( paste(&quot;length of names of rawData is&quot;, length(names(rawData)), 
+                    &quot;but length of names of rawDataToCompare is&quot;, length(names(rawDataToCompare))) )
+            }
+            names(rawData)
+            names(rawDataToCompare)
+            stop()
+        }
+        print( &quot;column names of both are the same&quot; )
+        #
+        print( &quot;no more ideas right now - look closely to find the difference&quot;)
+    }</code></pre>
+<pre><code>## [1] &quot;representations as data frames are identical&quot;</code></pre>
 </div>
 </div>
 

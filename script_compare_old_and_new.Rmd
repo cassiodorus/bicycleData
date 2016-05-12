@@ -1,14 +1,22 @@
-
-comment: C:\Users\David Hopp\AppData\Local\GitHub\PortableGit_25d850739bc178b2eb13c3e2a9faafea2f9143c0\cmd
+---
+title: "Durham NC Bicycle Safety data CodeForAmerica project"
+author: "David Hopp "
+date: "2016-05-09 "
+output: html_document
+---  
 
 # Comparing Versions of North_Carolina_Bicycle_Crash_Data.csv.gz  
 This script compares a new verion of the bicycle safety data file
 North_Carolina_Bicycle_Crash_Data.csv.gz with what is already in the
 R project as the data frame rawData.  
 
-There is one chunk here:
+## Step 01. Load bicycleSafetyData_MD.RData  
+```{r step01}
+load( "bicycleSafetyData_MD.RData" )
+```
 
-```{r }
+## Step 2. Compare data  
+```{r step02}
 #
 # compare current version of remote file with current contents of rawData
 # an alternative is to use the compare package
@@ -17,15 +25,13 @@ There is one chunk here:
 	if ( !exists("rawData") ) {
 		stop( "rawData does not exist." )
 	}
-	print( "rawData exists" )
 	#
 	# read current version of remote file
 	#
-	print( "read remote file" )
 	strDownload <- "CrashData.csv.gz"  
 	bikeSafetyURL <- "https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true"
 	# does URL exist and is accessible?
-	if ( !CRurl::url.exists( bikeSafetyURL ) ) {
+	if ( !RCurl::url.exists( bikeSafetyURL ) ) {
 		stop( "URL does not exist or is not accessible." )
 	}	
 	download.file( bikeSafetyURL, strDownload, mode="wb" )
@@ -38,7 +44,6 @@ There is one chunk here:
 	if ( !exists("rawDataToCompare") ) {
 		stop( "rawDataToCompare does not exist." )
 	}
-	print( "rawDataToCompare exists" )
 	#
 	if (identical(rawData, rawDataToCompare) ) {
 		print( "representations as data frames are identical" )
