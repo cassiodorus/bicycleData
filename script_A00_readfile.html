@@ -130,7 +130,8 @@ leading to the final output csv file rawDataFixedMiss.csv</p>
 <pre class="r"><code>require(plyr)
 require(dplyr)
 require(stringr)
-require(reshape2)</code></pre>
+require(reshape2)
+require(RCurl)</code></pre>
 </div>
 <div id="step-1.-read-the-csv-file-acquired-from-the-github-project" class="section level2">
 <h2>Step 1. Read the csv file acquired from the github project</h2>
@@ -144,6 +145,10 @@ If you read the local copy it must be in localCopyOfRemoteFile_csv</p>
 strDownload &lt;- &quot;CrashDataFromRemote.csv.gz&quot;  
 localCopyOfRemoteFile_csv &lt;- &quot;RawDataFromRemote.csv&quot;
 bikeSafetyURL &lt;- &quot;https://github.com/BikeSafety/BikeSafety/blob/master/data/North_Carolina_Bicycle_Crash_Data.csv.gz?raw=true&quot;
+# does URL exist and is accessible?
+if ( !RCurl::url.exists( bikeSafetyURL ) ) {
+    stop( &quot;URL does not exist or is not accessible.&quot; )
+}
 #
 download &lt;- FALSE
 #
@@ -460,30 +465,51 @@ nrow(rawDataFixed)</code></pre>
 </div>
 <div id="step-10.-fix-bikeage_gr-when-it-contains-10-jun-or-15-nov" class="section level2">
 <h2>Step 10. Fix BikeAge_Gr when it contains “10-Jun” or “15-Nov”</h2>
-<pre class="r"><code> rawDataFixedMiss$BikeAge_Gr[rawDataFixedMiss$BikeAge_Gr %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;)] &lt;- NA</code></pre>
+<pre class="r"><code>temp &lt;- rawData_catcount[rawData_catcount$variable==&quot;BikeAge_Gr&quot; &amp; rawData_catcount$value %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;),&quot;freq&quot;]
+if ( length(temp) &gt; 0 ) {
+    print( paste(&quot;There are&quot;, temp, &quot;instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA&quot;) )
+    rawDataFixedMiss &lt;- rawDataFixedMiss %&gt;% dplyr::mutate( BikeAge_Gr=ifelse(BikeAge_Gr %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;),NA,BikeAge_Gr) )
+}</code></pre>
+<pre><code>## [1] &quot;There are 421 instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA&quot;
+## [2] &quot;There are 747 instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA&quot;</code></pre>
 </div>
-<div id="step-11.-noted-in-passing" class="section level2">
-<h2>Step 11. Noted in passing:</h2>
-<p>There are 4 Workzone_I entries with “No0” instead of “No”<br />
-1 Crash_Loc with “Location” 1 Crash_Type with “Location”</p>
-<pre class="r"><code> rawDataFixedMiss[rawDataFixedMiss==&quot;Location&quot;] &lt;- NA
- rawDataFixedMiss[rawDataFixedMiss==&quot;No0&quot;] &lt;- &quot;No&quot;</code></pre>
+<div id="step-11.-noted-by-observation" class="section level2">
+<h2>Step 11. Noted by observation:</h2>
+<p>There may be some problems with Crash_Loc and Crash_Type.</p>
+<pre class="r"><code>temp1 &lt;- rawData_catcount[rawData_catcount$variable==&quot;Crash_Loc&quot; &amp; rawData_catcount$value==&quot;Location&quot;,&quot;freq&quot;]
+if ( temp1 &gt; 0 ) {
+    print( paste(&quot;There are&quot;, temp1, &quot;instances of Crash_Loc = 'Location'. Set these to NA&quot;) )
+    rawDataFixedMiss &lt;- rawDataFixedMiss %&gt;% dplyr::mutate( Crash_Loc=ifelse(Crash_Loc=='Location',NA,Crash_Loc) )
+}</code></pre>
+<pre><code>## [1] &quot;There are 1 instances of Crash_Loc = 'Location'. Set these to NA&quot;</code></pre>
+<pre class="r"><code>temp2 &lt;- rawData_catcount[rawData_catcount$variable==&quot;Workzone_I&quot; &amp; rawData_catcount$value==&quot;No0&quot;,&quot;freq&quot;]
+if ( length(temp2) &gt; 0 ) {
+    print( paste(&quot;There are&quot;, temp2, &quot;instances of Workzone_I = 'No0'. Set these to NA&quot;) )
+    rawDataFixedMiss &lt;- rawDataFixedMiss %&gt;% dplyr::mutate( Workzone_I=ifelse(Workzone_I=='No0',NA,Workzone_I) )
+}</code></pre>
+<pre><code>## [1] &quot;There are 4 instances of Workzone_I = 'No0'. Set these to NA&quot;</code></pre>
 </div>
-<div id="step-12.-look-closely-at-the-categorical-variables" class="section level2">
-<h2>Step 12. Look closely at the categorical variables</h2>
+<div id="step-12.-recompute-ancillary-data-frames-and-check-on-changes" class="section level2">
+<h2>Step 12. Recompute ancillary data frames and check on changes</h2>
 <pre class="r"><code> rawDataFixedMiss_cat &lt;- dplyr::select( rawDataFixedMiss, one_of(catcol_rawData) )
  rawDataFixedMiss_catmelt &lt;- reshape2::melt(rawDataFixedMiss_cat,id=&quot;OBJECTID&quot;)
  rawDataFixedMiss_catcount &lt;- plyr::count( rawDataFixedMiss_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
  nrow(rawDataFixedMiss_catmelt)</code></pre>
 <pre><code>## [1] 273744</code></pre>
 <pre class="r"><code> nrow(rawDataFixedMiss_catcount)</code></pre>
-<pre><code>## [1] 1365</code></pre>
+<pre><code>## [1] 1366</code></pre>
+<pre class="r"><code> # check to see that changes in previous step propagated correctly
+ temp3 &lt;- nrow( subset(rawDataFixedMiss_catcount, variable==&quot;BikeAge_Gr&quot; &amp; value %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;)) )
+ temp4 &lt;- nrow( subset(rawDataFixedMiss_catcount, variable==&quot;Crash_Loc&quot; &amp;value==&quot;Location&quot;) )
+ temp5 &lt;- nrow( subset(rawDataFixedMiss_catcount, variable==&quot;Workzone_I&quot; &amp; value==&quot;No0&quot;) )
+if (temp3+temp4+temp5 &gt; 0) {
+    stop( paste(temp1,temp2,temp3,temp4,temp5, &quot;PROBLEM with setting BikeAge_Gr or Crash_Loc or Workzone_I entries to NA.&quot;) )
+    }</code></pre>
 </div>
 <div id="step-13.-write-the-csv-file-and-save-the-session" class="section level2">
 <h2>Step 13. Write the csv file and save the session</h2>
-<pre class="r"><code># The files will be in your working directory - use getwd() to see what that is
-#
-write.table(rawDataFixedMiss, &quot;rawDataFixedMiss_MD.csv&quot;, sep=&quot;\t&quot;)
+<p>The files will be in your working directory - use getwd() to see what that is</p>
+<pre class="r"><code>write.table(rawDataFixedMiss, &quot;rawDataFixedMiss_MD.csv&quot;, sep=&quot;\t&quot;)
 save.image(&quot;bicycleSafetyData_MD.RData&quot;)</code></pre>
 </div>
 <div id="finis" class="section level2">
