@@ -133,8 +133,45 @@ require(stringr)
 require(reshape2)
 require(RCurl)</code></pre>
 </div>
-<div id="step-1.-read-the-csv-file-acquired-from-the-github-project" class="section level2">
-<h2>Step 1. Read the csv file acquired from the github project</h2>
+<div id="step-1.-define-functions" class="section level1">
+<h1>Step 1. Define Functions</h1>
+<pre class="r"><code>testFix &lt;- function(expr, doWhat=FALSE, compareto=NA) {
+#
+# Use testFix to test whether a change was properly applied to some data structure.
+# 'expr', must be an expression nominally prepared by expression().
+# insist on expr and compareto being of same class, this may require
+#   something like as.integer() in the call.
+# setting doWhat TRUE requires a value for compareto.
+# set doWhat FALSE if no comparison is to be made.
+#
+# if doWhat TRUE comparison is made and is the result of identical(eval(expr),compareto):
+# Returns a list with first item TRUE or FALSE indicating success or failure
+# if TRUE second and third items are blanks &quot;&quot;
+# if FALSE second item is a word, at present ERROR or WARNING
+# and third item is a diagnostic message
+#
+# if doWhat FALSE no comparison is made (useful for verifying eval(expr))
+# Returns a list with first item TRUE
+# second item is eval(expr)
+# third item is class(eval(expr))
+#
+    res &lt;- eval(expr)
+    eclass &lt;- class(res)
+    if (!doWhat) {
+        return( list(TRUE, res, eclass) )
+    } else {
+        cclass &lt;- class(compareto)
+        if ( !identical(eclass,cclass) ) {
+            return( list(FALSE, &quot;ERROR&quot;, paste(&quot;res class:&quot;,eclass,&quot;compareto class:&quot;,cclass)) )
+        }
+        if ( identical(res,compareto) ) {
+            return( list(TRUE,&quot;&quot;,&quot;&quot;) )
+        }
+        return( list(FALSE, &quot;FAIL&quot;, &quot;classes same but values different&quot;) )
+    }
+}</code></pre>
+<div id="step-2.-read-the-csv-file-acquired-from-the-github-project" class="section level2">
+<h2>Step 2. Read the csv file acquired from the github project</h2>
 <p>set “download” TRUE if file to be read from remote host<br />
 set “download” FALSE if skipping remote read and using local csv file<br />
 Presumption is that all files will be in the current working directory<br />
@@ -230,8 +267,8 @@ nrow(rawData)</code></pre>
 ##  $ Workzone_I: chr  &quot;No&quot; &quot;No&quot; &quot;No&quot; &quot;No&quot; ...
 ##  $ Location  : chr  &quot;(36.03949, -78.883896)&quot; &quot;(35.751118, -78.7828)&quot; &quot;(35.084732, -80.69782)&quot; &quot;(35.6844, -80.47932)&quot; ...</code></pre>
 </div>
-<div id="step-2.-look-at-some-data-values" class="section level2">
-<h2>Step 2. Look at some data values</h2>
+<div id="step-3.-look-at-some-data-values" class="section level2">
+<h2>Step 3. Look at some data values</h2>
 <pre class="r"><code> plyr::count(rawData, vars=&quot;BikeAge_Gr&quot;)</code></pre>
 <pre><code>##    BikeAge_Gr freq
 ## 1              112
@@ -249,8 +286,8 @@ nrow(rawData)</code></pre>
 ## 13        70+   58</code></pre>
 <pre class="r"><code># notice the erroneous values at lines 3 and 4</code></pre>
 </div>
-<div id="step-3.-look-at-categorical-data-and-see-if-any-odd-entries" class="section level2">
-<h2>Step 3. Look at categorical data and see if any “odd” entries</h2>
+<div id="step-4.-look-at-categorical-data-and-see-if-any-odd-entries" class="section level2">
+<h2>Step 4. Look at categorical data and see if any “odd” entries</h2>
 <pre class="r"><code># As a result of observation the rawData categorical variables (columns) - keeping row number OBJECTID - are:
 catcol_rawData &lt;- c(&quot;OBJECTID&quot;, &quot;AmbulanceR&quot;,&quot;BikeAge_Gr&quot;,&quot;Bike_Alc_D&quot;,&quot;Bike_Dir&quot;,&quot;Bike_Injur&quot;,&quot;Bike_Pos&quot;,
 &quot;Bike_Race&quot;,&quot;Bike_Sex&quot;,&quot;City&quot;,&quot;County&quot;,&quot;CrashAlcoh&quot;,&quot;CrashDay&quot;,&quot;Crash_Grp&quot;,&quot;Crash_Hour&quot;,
@@ -324,8 +361,8 @@ str(rawData_cat)</code></pre>
  nrow(rawData_catcount)</code></pre>
 <pre><code>## [1] 1395</code></pre>
 </div>
-<div id="step-4.-observations" class="section level2">
-<h2>Step 4. Observations</h2>
+<div id="step-5.-observations" class="section level2">
+<h2>Step 5. Observations</h2>
 <p>Handle BLANKS leading and trailing (will use str_trim to remove them)</p>
 <p>There may be some entries that have trailing blanks<br />
  one way to find those is here:</p>
@@ -355,14 +392,14 @@ str(rawData_cat)</code></pre>
 ## 3          0
 ## 4          0</code></pre>
 </div>
+</div>
 <div id="here-are-some-significant-observations" class="section level1">
 <h1>Here are some significant observations:</h1>
 <p>There are 4 definitely <em>undependable</em> records in rawData: 2902, 3188, 4108, 4620<br />
 There are other records that look <em>unreliable</em>:<br />
- 371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789<br />
-Note that BikeAge_Gr has 421 instances of “10-Jun” and 747 instances of “15-Nov”</p>
-<div id="step-5.-there-are-records-with-empty-columns-or-pseudo-codes-for-missing-values" class="section level2">
-<h2>Step 5. There are records with <em>empty</em> columns or pseudo-codes for missing values:</h2>
+ 371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789</p>
+<div id="step-6.-there-are-records-with-empty-columns-or-pseudo-codes-for-missing-values" class="section level2">
+<h2>Step 6. There are records with <em>empty</em> columns or pseudo-codes for missing values:</h2>
 <p>(same for trimmed value)</p>
 <pre class="r"><code>rawData_catcount[rawData_catcount$value==&quot;&quot;,]</code></pre>
 <pre><code>##        variable value freq
@@ -400,8 +437,8 @@ rawData_catcount[rawData_catcount$value==&quot;Missing&quot;,]</code></pre>
 ## 1378 Traff_Cntr Missing  153</code></pre>
 <p>Note that Crash_Loc has 9, 1 entries with “Location”</p>
 </div>
-<div id="step-6.-fix-rawdata" class="section level2">
-<h2>Step 6. “Fix” rawData</h2>
+<div id="step-7.-fix-rawdata" class="section level2">
+<h2>Step 7. “Fix” rawData</h2>
 <p>result will be df <strong>rawDataFixedMiss</strong></p>
 <p>SPECIAL TREATMENT OF COLUMNS Longitude and Location<br />
  zeroes appear in both, as 0 and 0.00000 for Longitude<br />
@@ -410,48 +447,58 @@ rawData_catcount[rawData_catcount$value==&quot;Missing&quot;,]</code></pre>
  how Location is handled in the subsequent processing programs.<br />
  For now, replace with NA</p>
 <pre class="r"><code>rawDataFixed &lt;- rawData
-nrow(rawDataFixed)</code></pre>
-<pre><code>## [1] 5716</code></pre>
-<pre class="r"><code># remove suspicious rows 
-rawDataFixed &lt;- rawDataFixed[ -c(2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789), ,
-       drop=FALSE]
-nrow(rawDataFixed)</code></pre>
-<pre><code>## [1] 5703</code></pre>
-<pre class="r"><code># TRIM TEXT FIELDS
+t1 &lt;- nrow(rawDataFixed)
+# remove suspicious rows 
+rowsToRemove &lt;- c(2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789)
+t1 &lt;- t1-length(rowsToRemove)
+rawDataFixed &lt;- rawDataFixed[ -rowsToRemove, ,drop=FALSE]
+testFixReturn &lt;- testFix(expression(nrow(rawDataFixed)), TRUE, as.integer(t1))
+if (testFixReturn[[1]]) {
+    print(&quot;correct number of rows deleted&quot;)
+} else {
+    stop( paste(testFixReturn[[2]],testFixReturn[[3]]) )
+}</code></pre>
+<pre><code>## [1] &quot;correct number of rows deleted&quot;</code></pre>
+<pre class="r"><code>#
+# TRIM TEXT FIELDS
 mycols &lt;- c(&quot;Bike_Injur&quot;,&quot;Crash_Loc&quot;,&quot;Crash_Type&quot;,&quot;Crsh_Sevri&quot;,&quot;Drvr_Injur&quot;,&quot;Drvr_VehTy&quot;)
 rawDataFixed[mycols] &lt;- lapply( rawDataFixed[mycols], function(x) stringr::str_trim(x) )
 nrow(rawDataFixed)</code></pre>
 <pre><code>## [1] 5703</code></pre>
 </div>
-<div id="step-7.-go-through-prep-steps-for-categorical-variables" class="section level2">
-<h2>Step 7. Go through prep steps for categorical variables</h2>
+<div id="step-8.-go-through-prep-steps-for-categorical-variables" class="section level2">
+<h2>Step 8. Go through prep steps for categorical variables</h2>
 <p>using rawDataFixed as the basis</p>
 <pre class="r"><code>rawDataFixed_cat &lt;- dplyr::select( rawDataFixed, one_of(catcol_rawData) )
 #
- rawDataFixed_catmelt &lt;- reshape2::melt( rawDataFixed_cat,id=&quot;OBJECTID&quot; )
- rawDataFixed_catcount &lt;- plyr::count( rawDataFixed_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
- #
- nrow(rawDataFixed_catmelt)</code></pre>
+rawDataFixed_catmelt &lt;- reshape2::melt( rawDataFixed_cat,id=&quot;OBJECTID&quot; )
+rawDataFixed_catcount &lt;- plyr::count( rawDataFixed_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
+#
+nrow(rawDataFixed_catmelt)</code></pre>
 <pre><code>## [1] 273744</code></pre>
-<pre class="r"><code> nrow(rawDataFixed_catcount)</code></pre>
+<pre class="r"><code>nrow(rawDataFixed_catcount)</code></pre>
 <pre><code>## [1] 1369</code></pre>
-<pre class="r"><code> rawDataFixed_catmelt_trblank &lt;- dplyr::filter( rawDataFixed_catmelt, str_detect(value,&quot; +$&quot;) )
- #
- # the result should be zero rows:
- #
- nrow(rawDataFixed_catmelt_trblank)</code></pre>
-<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>rawDataFixed_catmelt_trblank &lt;- dplyr::filter( rawDataFixed_catmelt, str_detect(value,&quot; +$&quot;) )
+#
+# the result should be zero rows:
+testFixReturn &lt;- testFix( expression( nrow( rawDataFixed_catmelt_trblank ) ), TRUE, as.integer(0) )
+if (testFixReturn[[1]]) {
+    print(&quot;correct: zero rows remaining to be trimmed&quot;)
+} else {
+    stop( paste(testFixReturn[[2]],testFixReturn[[3]]) )
+}</code></pre>
+<pre><code>## [1] &quot;correct: zero rows remaining to be trimmed&quot;</code></pre>
 </div>
-<div id="step-8.-fix-missing-values" class="section level2">
-<h2>Step 8. Fix missing values</h2>
+<div id="step-9.-fix-missing-values" class="section level2">
+<h2>Step 9. Fix missing values</h2>
 <p>replace with NA</p>
 <pre class="r"><code> rawDataFixedMiss &lt;- rawDataFixed
  rawDataFixedMiss[rawDataFixedMiss==&quot;&quot; | rawDataFixedMiss==&quot;.&quot; | rawDataFixedMiss==&quot;Missing&quot; | rawDataFixedMiss==&quot;/Missing&quot;] &lt;- NA
  nrow(rawDataFixedMiss)</code></pre>
 <pre><code>## [1] 5703</code></pre>
 </div>
-<div id="step-9.-fix-longitude-and-location---replace-zeros-with-na" class="section level2">
-<h2>Step 9. Fix Longitude and Location - replace zeros with NA</h2>
+<div id="step-10.-fix-longitude-and-location---replace-zeros-with-na" class="section level2">
+<h2>Step 10. Fix Longitude and Location - replace zeros with NA</h2>
 <pre class="r"><code> sum(rawDataFixedMiss$Location==&quot;(0, 0)&quot;)</code></pre>
 <pre><code>## [1] 1014</code></pre>
 <pre class="r"><code> rawDataFixedMiss$Location[rawDataFixedMiss$Location==&quot;(0, 0)&quot;] &lt;- NA
@@ -463,34 +510,56 @@ nrow(rawDataFixed)</code></pre>
  sum(is.na(rawDataFixedMiss$Longitude))</code></pre>
 <pre><code>## [1] 1014</code></pre>
 </div>
-<div id="step-10.-fix-bikeage_gr-when-it-contains-10-jun-or-15-nov" class="section level2">
-<h2>Step 10. Fix BikeAge_Gr when it contains “10-Jun” or “15-Nov”</h2>
+<div id="step-11.-fix-bikeage_gr-when-it-contains-10-jun-or-15-nov" class="section level2">
+<h2>Step 11. Fix BikeAge_Gr when it contains “10-Jun” or “15-Nov”</h2>
+<p>Note that BikeAge_Gr has 421 instances of “10-Jun” and 747 instances of “15-Nov”</p>
 <pre class="r"><code>temp &lt;- rawData_catcount[rawData_catcount$variable==&quot;BikeAge_Gr&quot; &amp; rawData_catcount$value %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;),&quot;freq&quot;]
 if ( length(temp) &gt; 0 ) {
-    print( paste(&quot;There are&quot;, temp, &quot;instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA&quot;) )
     rawDataFixedMiss &lt;- rawDataFixedMiss %&gt;% dplyr::mutate( BikeAge_Gr=ifelse(BikeAge_Gr %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;),NA,BikeAge_Gr) )
+    #
+    testFixReturn &lt;- testFix( expression(length(rawData_catcount[rawData_catcount$variable==&quot;BikeAge_Gr&quot; &amp; rawData_catcount$value %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;),&quot;freq&quot;])), FALSE, as.integer(0) )
+    if (testFixReturn[[1]]) {
+        print(&quot;correct: zero rows remaining&quot;)
+    } else {
+        stop( paste(testFixReturn[[2]],testFixReturn[[3]]) )
+    }
 }</code></pre>
-<pre><code>## [1] &quot;There are 421 instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA&quot;
-## [2] &quot;There are 747 instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA&quot;</code></pre>
+<pre><code>## [1] &quot;correct: zero rows remaining&quot;</code></pre>
 </div>
-<div id="step-11.-noted-by-observation" class="section level2">
-<h2>Step 11. Noted by observation:</h2>
+<div id="step-12.-noted-by-observation" class="section level2">
+<h2>Step 12. Noted by observation:</h2>
 <p>There may be some problems with Crash_Loc and Crash_Type.</p>
 <pre class="r"><code>temp1 &lt;- rawData_catcount[rawData_catcount$variable==&quot;Crash_Loc&quot; &amp; rawData_catcount$value==&quot;Location&quot;,&quot;freq&quot;]
 if ( temp1 &gt; 0 ) {
     print( paste(&quot;There are&quot;, temp1, &quot;instances of Crash_Loc = 'Location'. Set these to NA&quot;) )
     rawDataFixedMiss &lt;- rawDataFixedMiss %&gt;% dplyr::mutate( Crash_Loc=ifelse(Crash_Loc=='Location',NA,Crash_Loc) )
+    testFixReturn &lt;- testFix( expression(nrow(dplyr::filter(rawDataFixedMiss,Crash_Loc=='Location'))),
+                        TRUE, as.integer(0) )
+    if (testFixReturn[[1]]) {
+        print(&quot;correct: zero Crash_Loc=='Location' rows remaining in rawDataFixedMiss&quot;)
+    } else {
+        stop( paste(&quot;rawDataFixedMiss$Crash_Loc=='Location':&quot;,testFixReturn[[2]],testFixReturn[[3]]) )
+    }
 }</code></pre>
-<pre><code>## [1] &quot;There are 1 instances of Crash_Loc = 'Location'. Set these to NA&quot;</code></pre>
+<pre><code>## [1] &quot;There are 1 instances of Crash_Loc = 'Location'. Set these to NA&quot;
+## [1] &quot;correct: zero Crash_Loc=='Location' rows remaining in rawDataFixedMiss&quot;</code></pre>
 <pre class="r"><code>temp2 &lt;- rawData_catcount[rawData_catcount$variable==&quot;Workzone_I&quot; &amp; rawData_catcount$value==&quot;No0&quot;,&quot;freq&quot;]
 if ( length(temp2) &gt; 0 ) {
     print( paste(&quot;There are&quot;, temp2, &quot;instances of Workzone_I = 'No0'. Set these to NA&quot;) )
     rawDataFixedMiss &lt;- rawDataFixedMiss %&gt;% dplyr::mutate( Workzone_I=ifelse(Workzone_I=='No0',NA,Workzone_I) )
+    testFixReturn &lt;- testFix( expression(nrow(dplyr::filter(rawDataFixedMiss,Workzone_I=='No0'))),
+                        TRUE, as.integer(0) )
+    if (testFixReturn[[1]]) {
+        print(&quot;correct: zero Workzone_I=='No0' rows remaining in rawDataFixedMiss&quot;)
+    } else {
+        stop( paste(&quot;rawDataFixedMiss$Workzone_I=='No0':&quot;,testFixReturn[[2]],testFixReturn[[3]]) )
+    }
 }</code></pre>
-<pre><code>## [1] &quot;There are 4 instances of Workzone_I = 'No0'. Set these to NA&quot;</code></pre>
+<pre><code>## [1] &quot;There are 4 instances of Workzone_I = 'No0'. Set these to NA&quot;
+## [1] &quot;correct: zero Workzone_I=='No0' rows remaining in rawDataFixedMiss&quot;</code></pre>
 </div>
-<div id="step-12.-recompute-ancillary-data-frames-and-check-on-changes" class="section level2">
-<h2>Step 12. Recompute ancillary data frames and check on changes</h2>
+<div id="step-13.-recompute-ancillary-data-frames-and-check-on-changes" class="section level2">
+<h2>Step 13. Recompute ancillary data frames and check on changes</h2>
 <pre class="r"><code> rawDataFixedMiss_cat &lt;- dplyr::select( rawDataFixedMiss, one_of(catcol_rawData) )
  rawDataFixedMiss_catmelt &lt;- reshape2::melt(rawDataFixedMiss_cat,id=&quot;OBJECTID&quot;)
  rawDataFixedMiss_catcount &lt;- plyr::count( rawDataFixedMiss_catmelt, vars=c(&quot;variable&quot;,&quot;value&quot;) )
@@ -499,15 +568,18 @@ if ( length(temp2) &gt; 0 ) {
 <pre class="r"><code> nrow(rawDataFixedMiss_catcount)</code></pre>
 <pre><code>## [1] 1366</code></pre>
 <pre class="r"><code> # check to see that changes in previous step propagated correctly
- temp3 &lt;- nrow( subset(rawDataFixedMiss_catcount, variable==&quot;BikeAge_Gr&quot; &amp; value %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;)) )
- temp4 &lt;- nrow( subset(rawDataFixedMiss_catcount, variable==&quot;Crash_Loc&quot; &amp;value==&quot;Location&quot;) )
- temp5 &lt;- nrow( subset(rawDataFixedMiss_catcount, variable==&quot;Workzone_I&quot; &amp; value==&quot;No0&quot;) )
+ temp3 &lt;- nrow( dplyr::filter(rawDataFixedMiss_catcount, variable==&quot;BikeAge_Gr&quot; &amp; value %in% c(&quot;10-Jun&quot;,&quot;15-Nov&quot;)) )
+ temp4 &lt;- nrow( dplyr::filter(rawDataFixedMiss_catcount, variable==&quot;Crash_Loc&quot; &amp;value==&quot;Location&quot;) )
+ temp5 &lt;- nrow( dplyr::filter(rawDataFixedMiss_catcount, variable==&quot;Workzone_I&quot; &amp; value==&quot;No0&quot;) )
 if (temp3+temp4+temp5 &gt; 0) {
     stop( paste(temp1,temp2,temp3,temp4,temp5, &quot;PROBLEM with setting BikeAge_Gr or Crash_Loc or Workzone_I entries to NA.&quot;) )
-    }</code></pre>
+    } else {
+    print(&quot;checks on ancillary data frames successful&quot;)
+}</code></pre>
+<pre><code>## [1] &quot;checks on ancillary data frames successful&quot;</code></pre>
 </div>
-<div id="step-13.-write-the-csv-file-and-save-the-session" class="section level2">
-<h2>Step 13. Write the csv file and save the session</h2>
+<div id="step-14.-write-the-csv-file-and-save-the-session" class="section level2">
+<h2>Step 14. Write the csv file and save the session</h2>
 <p>The files will be in your working directory - use getwd() to see what that is</p>
 <pre class="r"><code>write.table(rawDataFixedMiss, &quot;rawDataFixedMiss_MD.csv&quot;, sep=&quot;\t&quot;)
 save.image(&quot;bicycleSafetyData_MD.RData&quot;)</code></pre>

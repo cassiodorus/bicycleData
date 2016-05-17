@@ -9,7 +9,7 @@ R markdown script to perform all operations
 leading to the final output csv file rawDataFixedMiss.csv  
  
 ## Step 0. Make sure required packages loaded
-```{r step00, results="hide"}
+```{r step00, results='hide'}
 require(plyr)
 require(dplyr)
 require(stringr)
@@ -17,7 +17,47 @@ require(reshape2)
 require(RCurl)
 ```
 
-## Step 1. Read the csv file acquired from the github project  
+# Step 1. Define Functions  
+
+```{r step01}
+testFix <- function(expr, doWhat=FALSE, compareto=NA) {
+#
+# Use testFix to test whether a change was properly applied to some data structure.
+# 'expr', must be an expression nominally prepared by expression().
+# insist on expr and compareto being of same class, this may require
+#	something like as.integer() in the call.
+# setting doWhat TRUE requires a value for compareto.
+# set doWhat FALSE if no comparison is to be made.
+#
+# if doWhat TRUE comparison is made and is the result of identical(eval(expr),compareto):
+# Returns a list with first item TRUE or FALSE indicating success or failure
+# if TRUE second and third items are blanks ""
+# if FALSE second item is a word, at present ERROR or WARNING
+# and third item is a diagnostic message
+#
+# if doWhat FALSE no comparison is made (useful for verifying eval(expr))
+# Returns a list with first item TRUE
+# second item is eval(expr)
+# third item is class(eval(expr))
+#
+	res <- eval(expr)
+	eclass <- class(res)
+	if (!doWhat) {
+		return( list(TRUE, res, eclass) )
+	} else {
+		cclass <- class(compareto)
+		if ( !identical(eclass,cclass) ) {
+			return( list(FALSE, "ERROR", paste("res class:",eclass,"compareto class:",cclass)) )
+		}
+		if ( identical(res,compareto) ) {
+			return( list(TRUE,"","") )
+		}
+		return( list(FALSE, "FAIL", "classes same but values different") )
+	}
+}
+```
+
+## Step 2. Read the csv file acquired from the github project  
  
 set "download" TRUE if file to be read from remote host  
 set "download" FALSE if skipping remote read and using local csv file  
@@ -26,7 +66,7 @@ If you read the remote file it will be placed in strDownload in its original for
 and also a csv representation of it will be written to localCopyOfRemoteFile_csv  
 If you read the local copy it must be in localCopyOfRemoteFile_csv
 
-```{r step01, error=FALSE}
+```{r step02, error=FALSE}
 # borrowed from Brian:
 #
 strDownload <- "CrashDataFromRemote.csv.gz"  
@@ -60,14 +100,14 @@ nrow(rawData)
 str(rawData)
 ```
 
-## Step 2. Look at some data values
-```{r step02, error=FALSE}
+## Step 3. Look at some data values
+```{r step03, error=FALSE}
  plyr::count(rawData, vars="BikeAge_Gr")
 # notice the erroneous values at lines 3 and 4
 ```
 
-## Step 3. Look at categorical data and see if any "odd" entries
-```{r step03, error=FALSE}
+## Step 4. Look at categorical data and see if any "odd" entries
+```{r step04, error=FALSE}
 # As a result of observation the rawData categorical variables (columns) - keeping row number OBJECTID - are:
 catcol_rawData <- c("OBJECTID", "AmbulanceR","BikeAge_Gr","Bike_Alc_D","Bike_Dir","Bike_Injur","Bike_Pos",
 "Bike_Race","Bike_Sex","City","County","CrashAlcoh","CrashDay","Crash_Grp","Crash_Hour",
@@ -90,13 +130,13 @@ str(rawData_cat)
  nrow(rawData_catcount)
 ```
  
-## Step 4. Observations  
+## Step 5. Observations  
 
   Handle BLANKS leading and trailing  (will use str_trim to remove them)  
  
  There may be some entries that have trailing blanks  
  one way to find those is here:
-```{r step04, error=FALSE}
+```{r step05, error=FALSE}
  rawData_catmelt_trblank <- dplyr::filter(rawData_catmelt, str_detect(value," +$"))
  nrow(rawData_catmelt_trblank)
  # which var has trailing blanks?
@@ -113,15 +153,12 @@ str(rawData_cat)
 There are 4 definitely *undependable* records in rawData: 
 				2902, 3188, 4108, 4620  
 There are other records that look _unreliable_:  
-				371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789  
-Note that BikeAge_Gr has
- `r rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value=="10-Jun","freq"]` instances of "10-Jun" and 
- `r rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value=="15-Nov","freq"]` instances of "15-Nov"  
+				371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789   
    
 
-## Step 5. There are records with *empty* columns or pseudo-codes for missing values:  
+## Step 6. There are records with *empty* columns or pseudo-codes for missing values:  
 (same for trimmed value)
-```{r step05, error=FALSE}
+```{r step06, error=FALSE}
 rawData_catcount[rawData_catcount$value=="",]
 # (same for trimmed value)
 rawData_catcount[rawData_catcount$value=="/Missing",]
@@ -130,7 +167,7 @@ rawData_catcount[rawData_catcount$value=="Missing",]
 ```
 Note that Crash_Loc has `r rawData_catcount[rawData_catcount$variable=="Crash_Loc" & stringr::str_trim(rawData_catcount$value)=="Location","freq"]` entries with "Location"  
 
-## Step 6. "Fix" rawData  
+## Step 7. "Fix" rawData  
 result will be df **rawDataFixedMiss**  
 
  SPECIAL TREATMENT OF COLUMNS Longitude and Location  
@@ -140,46 +177,57 @@ result will be df **rawDataFixedMiss**
  how Location is handled in the subsequent processing programs.  
  For now, replace with NA  
   
-```{r step06, error=FALSE}
+```{r step07, error=FALSE}
 rawDataFixed <- rawData
-nrow(rawDataFixed)
+t1 <- nrow(rawDataFixed)
 # remove suspicious rows 
-rawDataFixed <- rawDataFixed[ -c(2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789), ,
-       drop=FALSE]
-nrow(rawDataFixed)
+rowsToRemove <- c(2902, 3188, 4108, 4620,371, 846, 942, 1247, 1271, 1777, 2101, 2130, 2789)
+t1 <- t1-length(rowsToRemove)
+rawDataFixed <- rawDataFixed[ -rowsToRemove, ,drop=FALSE]
+testFixReturn <- testFix(expression(nrow(rawDataFixed)), TRUE, as.integer(t1))
+if (testFixReturn[[1]]) {
+	print("correct number of rows deleted")
+} else {
+	stop( paste(testFixReturn[[2]],testFixReturn[[3]]) )
+}
+#
 # TRIM TEXT FIELDS
 mycols <- c("Bike_Injur","Crash_Loc","Crash_Type","Crsh_Sevri","Drvr_Injur","Drvr_VehTy")
 rawDataFixed[mycols] <- lapply( rawDataFixed[mycols], function(x) stringr::str_trim(x) )
 nrow(rawDataFixed)
 ```
 
-## Step 7. Go through prep steps for categorical variables  
+## Step 8. Go through prep steps for categorical variables  
 using rawDataFixed as the basis  
-```{r step07, error=FALSE}
+```{r step08, error=FALSE}
 rawDataFixed_cat <- dplyr::select( rawDataFixed, one_of(catcol_rawData) )
 #
- rawDataFixed_catmelt <- reshape2::melt( rawDataFixed_cat,id="OBJECTID" )
- rawDataFixed_catcount <- plyr::count( rawDataFixed_catmelt, vars=c("variable","value") )
- #
- nrow(rawDataFixed_catmelt)
- nrow(rawDataFixed_catcount)
- rawDataFixed_catmelt_trblank <- dplyr::filter( rawDataFixed_catmelt, str_detect(value," +$") )
- #
- # the result should be zero rows:
- #
- nrow(rawDataFixed_catmelt_trblank)
+rawDataFixed_catmelt <- reshape2::melt( rawDataFixed_cat,id="OBJECTID" )
+rawDataFixed_catcount <- plyr::count( rawDataFixed_catmelt, vars=c("variable","value") )
+#
+nrow(rawDataFixed_catmelt)
+nrow(rawDataFixed_catcount)
+rawDataFixed_catmelt_trblank <- dplyr::filter( rawDataFixed_catmelt, str_detect(value," +$") )
+#
+# the result should be zero rows:
+testFixReturn <- testFix( expression( nrow( rawDataFixed_catmelt_trblank ) ), TRUE, as.integer(0) )
+if (testFixReturn[[1]]) {
+	print("correct: zero rows remaining to be trimmed")
+} else {
+	stop( paste(testFixReturn[[2]],testFixReturn[[3]]) )
+}
 ```
 
-## Step 8. Fix missing values  
+## Step 9. Fix missing values  
 replace with NA  
-```{r step08, error=FALSE}
+```{r step09, error=FALSE}
  rawDataFixedMiss <- rawDataFixed
  rawDataFixedMiss[rawDataFixedMiss=="" | rawDataFixedMiss=="." | rawDataFixedMiss=="Missing" | rawDataFixedMiss=="/Missing"] <- NA
  nrow(rawDataFixedMiss)
 ```
 
-## Step 9. Fix Longitude and Location - replace zeros with NA   
-```{r step09, error=FALSE}
+## Step 10. Fix Longitude and Location - replace zeros with NA   
+```{r step10, error=FALSE}
  sum(rawDataFixedMiss$Location=="(0, 0)")
 
  rawDataFixedMiss$Location[rawDataFixedMiss$Location=="(0, 0)"] <- NA
@@ -189,50 +237,75 @@ replace with NA
  sum(is.na(rawDataFixedMiss$Longitude))
 ```
 
-## Step 10. Fix BikeAge_Gr when it contains "10-Jun" or "15-Nov"
-```{r step10, error=FALSE}
+## Step 11. Fix BikeAge_Gr when it contains "10-Jun" or "15-Nov"
+Note that BikeAge_Gr has
+ `r rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value=="10-Jun","freq"]` instances of "10-Jun" and 
+ `r rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value=="15-Nov","freq"]` instances of "15-Nov" 
+```{r step11, error=FALSE}
 temp <- rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value %in% c("10-Jun","15-Nov"),"freq"]
 if ( length(temp) > 0 ) {
-	print( paste("There are", temp, "instances of BikeAge_Gr = '10-Jun' or '15-Nov'. Set these to NA") )
 	rawDataFixedMiss <- rawDataFixedMiss %>% dplyr::mutate( BikeAge_Gr=ifelse(BikeAge_Gr %in% c("10-Jun","15-Nov"),NA,BikeAge_Gr) )
+	#
+	testFixReturn <- testFix( expression(length(rawData_catcount[rawData_catcount$variable=="BikeAge_Gr" & rawData_catcount$value %in% c("10-Jun","15-Nov"),"freq"])), FALSE, as.integer(0) )
+	if (testFixReturn[[1]]) {
+		print("correct: zero rows remaining")
+	} else {
+		stop( paste(testFixReturn[[2]],testFixReturn[[3]]) )
+	}
 }
 ```
 
-## Step 11. Noted by observation:   
+## Step 12. Noted by observation:   
 There may be some problems with Crash_Loc and Crash_Type.
  
-```{r step11, error=FALSE}
+```{r step12, error=FALSE}
 temp1 <- rawData_catcount[rawData_catcount$variable=="Crash_Loc" & rawData_catcount$value=="Location","freq"]
 if ( temp1 > 0 ) {
 	print( paste("There are", temp1, "instances of Crash_Loc = 'Location'. Set these to NA") )
 	rawDataFixedMiss <- rawDataFixedMiss %>% dplyr::mutate( Crash_Loc=ifelse(Crash_Loc=='Location',NA,Crash_Loc) )
+	testFixReturn <- testFix( expression(nrow(dplyr::filter(rawDataFixedMiss,Crash_Loc=='Location'))),
+						TRUE, as.integer(0) )
+	if (testFixReturn[[1]]) {
+		print("correct: zero Crash_Loc=='Location' rows remaining in rawDataFixedMiss")
+	} else {
+		stop( paste("rawDataFixedMiss$Crash_Loc=='Location':",testFixReturn[[2]],testFixReturn[[3]]) )
+	}
 }
 temp2 <- rawData_catcount[rawData_catcount$variable=="Workzone_I" & rawData_catcount$value=="No0","freq"]
 if ( length(temp2) > 0 ) {
 	print( paste("There are", temp2, "instances of Workzone_I = 'No0'. Set these to NA") )
 	rawDataFixedMiss <- rawDataFixedMiss %>% dplyr::mutate( Workzone_I=ifelse(Workzone_I=='No0',NA,Workzone_I) )
+	testFixReturn <- testFix( expression(nrow(dplyr::filter(rawDataFixedMiss,Workzone_I=='No0'))),
+						TRUE, as.integer(0) )
+	if (testFixReturn[[1]]) {
+		print("correct: zero Workzone_I=='No0' rows remaining in rawDataFixedMiss")
+	} else {
+		stop( paste("rawDataFixedMiss$Workzone_I=='No0':",testFixReturn[[2]],testFixReturn[[3]]) )
+	}
 }
 ```
 
-## Step 12. Recompute ancillary data frames and check on changes  
-```{r step12, error=FALSE}
+## Step 13. Recompute ancillary data frames and check on changes  
+```{r step13, error=FALSE}
  rawDataFixedMiss_cat <- dplyr::select( rawDataFixedMiss, one_of(catcol_rawData) )
  rawDataFixedMiss_catmelt <- reshape2::melt(rawDataFixedMiss_cat,id="OBJECTID")
  rawDataFixedMiss_catcount <- plyr::count( rawDataFixedMiss_catmelt, vars=c("variable","value") )
  nrow(rawDataFixedMiss_catmelt)
  nrow(rawDataFixedMiss_catcount)
  # check to see that changes in previous step propagated correctly
- temp3 <- nrow( subset(rawDataFixedMiss_catcount, variable=="BikeAge_Gr" & value %in% c("10-Jun","15-Nov")) )
- temp4 <- nrow( subset(rawDataFixedMiss_catcount, variable=="Crash_Loc" &value=="Location") )
- temp5 <- nrow( subset(rawDataFixedMiss_catcount, variable=="Workzone_I" & value=="No0") )
+ temp3 <- nrow( dplyr::filter(rawDataFixedMiss_catcount, variable=="BikeAge_Gr" & value %in% c("10-Jun","15-Nov")) )
+ temp4 <- nrow( dplyr::filter(rawDataFixedMiss_catcount, variable=="Crash_Loc" &value=="Location") )
+ temp5 <- nrow( dplyr::filter(rawDataFixedMiss_catcount, variable=="Workzone_I" & value=="No0") )
 if (temp3+temp4+temp5 > 0) {
 	stop( paste(temp1,temp2,temp3,temp4,temp5, "PROBLEM with setting BikeAge_Gr or Crash_Loc or Workzone_I entries to NA.") )
-	}
+	} else {
+	print("checks on ancillary data frames successful")
+}
 ```
 
-## Step 13. Write the csv file and save the session  
+## Step 14. Write the csv file and save the session  
 The files will be in your working directory - use getwd() to see what that is
-```{r step13, error=FALSE}
+```{r step14, error=FALSE}
 write.table(rawDataFixedMiss, "rawDataFixedMiss_MD.csv", sep="\t")
 save.image("bicycleSafetyData_MD.RData")
 ```
